@@ -1,12 +1,18 @@
+from fastcore.all import *
+from fastai.vision.all import *
+
 import gradio as gr
 
-def greet(name, intensity):
-    return f"Hello there, {name}!{'!'*int(intensity)}"
+learn = load_learner("hat-detector-model-local.pkl")
 
-demo = gr.Interface(
-    fn=greet,
-    inputs=["text", "slider"],
-    outputs=["text"]
-)
+categories = ("No hat", "Hat")
 
-demo.launch()
+def classify_image(img):
+    pred,idx,probs = learn.predict(img)
+    return dict(zip(categories, map(float,probs)))
+
+image = gr.Image(height=192,width=192)
+label = gr.Label()
+
+intf = gr.Interface(fn=classify_image, inputs=image, outputs=label)
+intf.launch(inline=False)
