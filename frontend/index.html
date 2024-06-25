@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Predictor</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap');
+
+    body {
+      background-color: #f5f5f5;
+      color: #333;
+      font-family: 'Permanent Marker', cursive;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    @media (min-width: 768px) {
+      .container {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+    }
+    input[type="file"] {
+      display: none;
+    }
+    label {
+      margin: 20px 0;
+      padding: 15px 25px;
+      border: 2px dashed #333;
+      background-color: #fff;
+      color: #333;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background-color 0.3s, color 0.3s;
+      box-shadow: 3px 3px #888;
+    }
+    label:hover {
+      background-color: #333;
+      color: #fff;
+    }
+    img {
+      width: 320px;
+      height: 320px;
+      object-fit: cover;
+      border: 3px dashed #333;
+      margin: 20px;
+      box-shadow: 5px 5px #888;
+    }
+    p {
+      font-size: 26px;
+      color: #333;
+    }
+    .prediction {
+      font-size: 34px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "preact": "https://esm.sh/preact@10.19.2",
+        "preact/": "https://esm.sh/preact@10.19.2/",
+        "htm/preact": "https://esm.sh/htm@3.1.1/preact?external=preact",
+        "@gradio/client": "https://cdn.jsdelivr.net/npm/@gradio/client@1.1.1/+esm"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import { render } from "preact";
+    import { useState } from "preact/hooks";
+    import { html } from "htm/preact";
+    import { Client as GradioClient } from "@gradio/client";
+
+    function App() {
+      const [image, setImage] = useState(null);
+      const [prediction, setPrediction] = useState(null);
+
+      const predict = async (file) => {
+        const gradioClient = await GradioClient.connect("robinedman/hat-or-no");
+        return (
+          await gradioClient.predict("/predict", {
+            img: file,
+          })
+        ).data[0];
+      };
+
+      const handleImageUpload = async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          setImage(URL.createObjectURL(file));
+
+          // Make prediction
+          const prediction = await predict(file);
+          setPrediction(prediction.label);
+        }
+      };
+
+      return html`
+        <div class="container">
+          <div>
+            <label for="file-upload">Upload Image</label>
+            <input type="file" id="file-upload" accept="image/*" onChange=${handleImageUpload} />
+            ${prediction && html`<p class="prediction">Prediction: ${prediction}</p>`}
+          </div>
+          ${image && html`<img src=${image} alt="Uploaded Image" />`}
+        </div>
+      `;
+    }
+
+    render(html`<${App} />`, document.body);
+  </script>
+</body>
+</html>
